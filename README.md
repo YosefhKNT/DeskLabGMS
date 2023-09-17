@@ -54,6 +54,6 @@ Si deseas contribuir al desarrollo de esta aplicación, sigue estos pasos:
 
 ## Contacto
 
-Para preguntas o problemas, contacta al equipo de desarrollo en [correo electrónico](mailto:equipo@laboratoriogms.com).
+Para preguntas o problemas, contacta al equipo de desarrollo en [correo electrónico](mailto:joratejedana@ittepic.edu.mx).
 
 ¡Gracias por utilizar el Sistema de Gestión de Laboratorio GMS!
