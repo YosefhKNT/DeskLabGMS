@@ -8,9 +8,7 @@ import BD_Connection.Conectar;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.PreparedStatement;
-import com.mysql.jdbc.ResultSetMetaData;
 import com.mysql.jdbc.Statement;
-import com.sun.net.httpserver.Authenticator;
 import java.awt.Color;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -19,16 +17,12 @@ import java.io.InputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.EventObject;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.PatternSyntaxException;
 import javax.imageio.ImageIO;
-import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.RowFilter;
@@ -39,7 +33,6 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
@@ -178,7 +171,7 @@ public class User_Admin extends javax.swing.JFrame {
         btn_quimico.setBackground(fondo);
     }
 
-    // lennado de tablas
+    // llenado de tablas
     private void llenarTablaAdmin() {
         String consulta = "SELECT * FROM `administrador`";
 
