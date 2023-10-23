@@ -9,6 +9,7 @@ import com.formdev.flatlaf.FlatLightLaf;
 import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.PreparedStatement;
 import com.mysql.jdbc.Statement;
+import com.toedter.calendar.JDateChooser;
 import java.awt.Color;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -16,10 +17,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.EventObject;
 import java.util.regex.PatternSyntaxException;
 import javax.imageio.ImageIO;
 import javax.swing.DefaultCellEditor;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -42,7 +46,7 @@ import usuarios.Usuario;
 
 /**
  *
- * @author yosef
+ * @author yosefh
  */
 public class User_Admin extends javax.swing.JFrame {
 
@@ -119,7 +123,7 @@ public class User_Admin extends javax.swing.JFrame {
         limitarSoloNumeros(txt_recep_telefono);
         limitarSoloNumeros(txt_lab_telefono);
         limitarSoloNumeros(txt_area_telefono);
-        limitarSoloNumeros(txt_cita_telefono);
+        //limitarSoloNumeros(txt_cita_telefono);
         limitarSoloNumeros(txt_quimico_telefono);
         limitarSoloNumeros(txt_estudio_telefono);
 
@@ -380,38 +384,44 @@ public class User_Admin extends javax.swing.JFrame {
             Statement st = (Statement) conect.createStatement();
             ResultSet resultado = st.executeQuery(consulta);
 
-            DefaultTableModel modeloR = new DefaultTableModel();
-            modeloR.addColumn("ID");
-            modeloR.addColumn("Nombre");
-            modeloR.addColumn("Fecha");
-            modeloR.addColumn("Hora");
-            modeloR.addColumn("Teléfono");
-            modeloR.addColumn("Clave");
-            modeloR.addColumn("Estudio");
-            modeloR.addColumn("Estatus");
+            DefaultTableModel modeloA = new DefaultTableModel();
+            modeloA.addColumn("ID");
+            modeloA.addColumn("Clave");
+            modeloA.addColumn("Nombre");
+            modeloA.addColumn("Fecha");
+            modeloA.addColumn("Hora");
+            modeloA.addColumn("Telefono");
+            modeloA.addColumn("Resultados");
+            modeloA.addColumn("Estudios");
+            modeloA.addColumn("Estatus");
 
             while (resultado.next()) {
                 int id = resultado.getInt("id");
                 String nombre = resultado.getString("nombre");
                 String fecha = resultado.getString("fecha");
-
-                // Quitar segundos
                 String hora = resultado.getString("hora");
-                String[] horaSinSeguntos = hora.split(":");
-                hora = horaSinSeguntos[0] + ":" + horaSinSeguntos[1];
-
                 String telefono = resultado.getString("telefono");
                 String clave = resultado.getString("clave");
-                String estudio = resultado.getString("estudio_id");
+                String resultados = resultado.getString("resultados");
+                String estudio_id = resultado.getString("estudio_id");
                 String estatus = resultado.getString("estatus");
 
-                Object[] fila = {id, nombre, fecha, hora, telefono, clave, estudio, estatus};
-                modeloR.addRow(fila);
+                String estudio = "";
+                Statement stEst = (Statement) conect.createStatement();
+                ResultSet resultadoEstudio = stEst.executeQuery("SELECT estudio FROM `estudio` WHERE id = " + estudio_id);
+
+                if (resultadoEstudio.next()) {
+                    estudio = resultadoEstudio.getString("estudio");
+                } else {
+                    estudio = "S/E";
+                }
+                Object[] fila = {id, clave, nombre, fecha, hora, telefono, resultados, estudio, estatus};
+                modeloA.addRow(fila);
             }
 
-            tbl_citas.setModel(modeloR);
+            tbl_citas.setModel(modeloA);
 
-            sorterCitas = new TableRowSorter<>(modeloR);
+            sorterCitas = new TableRowSorter<>(modeloA);
             tbl_citas.setRowSorter(sorterCitas);
 
             TableColumn idColumna = tbl_citas.getColumnModel().getColumn(0);
@@ -420,22 +430,23 @@ public class User_Admin extends javax.swing.JFrame {
             centerRenderer.setHorizontalAlignment(JLabel.CENTER);
             idColumna.setCellRenderer(centerRenderer);
 
+            idColumna = tbl_citas.getColumnModel().getColumn(1);
+            idColumna.setPreferredWidth(55);
+            idColumna.setCellRenderer(centerRenderer);
+
             idColumna = tbl_citas.getColumnModel().getColumn(2);
-            idColumna.setPreferredWidth(40);
-            centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+            idColumna.setPreferredWidth(100);
+
+            idColumna = tbl_citas.getColumnModel().getColumn(3);
+            idColumna.setPreferredWidth(50);
+            idColumna.setCellRenderer(centerRenderer);
+
+            idColumna = tbl_citas.getColumnModel().getColumn(4);
+            idColumna.setPreferredWidth(50);
             idColumna.setCellRenderer(centerRenderer);
 
             idColumna = tbl_citas.getColumnModel().getColumn(3);
-            centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-            idColumna.setCellRenderer(centerRenderer);
-            idColumna.setPreferredWidth(20);
-
-            idColumna = tbl_citas.getColumnModel().getColumn(4);
-            centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-            idColumna.setCellRenderer(centerRenderer);
-
-            idColumna = tbl_citas.getColumnModel().getColumn(4);
-            centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+            idColumna.setPreferredWidth(60);
             idColumna.setCellRenderer(centerRenderer);
 
             // Cerrar los recursos
@@ -558,7 +569,7 @@ public class User_Admin extends javax.swing.JFrame {
                 String direccion = resultado.getString("direccion");
                 String telefono = resultado.getString("telefono");
                 String puesto = resultado.getString("puesto");
-                String contrasena = resultado.getString("contrasena");
+                String contrasena = resultado.getString("password");
                 Object[] fila = {id, nombre, direccion, telefono, puesto, contrasena};
                 modeloR.addRow(fila);
             }
@@ -569,28 +580,15 @@ public class User_Admin extends javax.swing.JFrame {
             tbl_quimico.setRowSorter(sorterQuimico);
 
             TableColumn idColumna = tbl_quimico.getColumnModel().getColumn(0);
-            idColumna.setPreferredWidth(20);
+            idColumna.setPreferredWidth(5);
             DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
             centerRenderer.setHorizontalAlignment(JLabel.CENTER);
             idColumna.setCellRenderer(centerRenderer);
 
-            idColumna = tbl_quimico.getColumnModel().getColumn(3);
-            idColumna.setPreferredWidth(40);
+            idColumna = tbl_quimico.getColumnModel().getColumn(2);
+            idColumna.setPreferredWidth(80);
             centerRenderer.setHorizontalAlignment(JLabel.CENTER);
             idColumna.setCellRenderer(centerRenderer);
-
-            idColumna = tbl_quimico.getColumnModel().getColumn(4);
-            idColumna.setPreferredWidth(50);
-            centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-            idColumna.setCellRenderer(centerRenderer);
-
-            idColumna = tbl_quimico.getColumnModel().getColumn(5);
-            idColumna.setPreferredWidth(40);
-            centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-            idColumna.setCellRenderer(centerRenderer);
-
-            TableColumn direccionColumna = tbl_quimico.getColumnModel().getColumn(2);
-            direccionColumna.setPreferredWidth(200); // Ajustar el ancho de la columna "Dirección" a 200 píxeles
 
             // Cerrar los recursos
             resultado.close();
@@ -1040,7 +1038,7 @@ public class User_Admin extends javax.swing.JFrame {
         // Asociamos el DocumentListener a los JTextField
         txt_cita_nombre.getDocument().addDocumentListener(documentListener);
         txt_cita_direccion.getDocument().addDocumentListener(documentListener);
-        txt_cita_telefono.getDocument().addDocumentListener(documentListener);
+        //txt_cita_telefono.getDocument().addDocumentListener(documentListener);
         txt_cita_pass.getDocument().addDocumentListener(documentListener);
     }
 
@@ -1048,17 +1046,17 @@ public class User_Admin extends javax.swing.JFrame {
         // Obtener el contenido de los JTextField
         String nombre = txt_cita_nombre.getText();
         String direccion = txt_cita_direccion.getText();
-        String telefono = txt_cita_telefono.getText();
+        //String telefono = txt_cita_telefono.getText();
         String pass = txt_cita_pass.getText();
 
         // Habilitar el botón si ambos campos contienen caracteres, de lo contrario, deshabilitarlo
-        if (!nombre.isEmpty() && !direccion.isEmpty() && !telefono.isEmpty() && !pass.isEmpty()) {
+        if (!nombre.isEmpty() && !direccion.isEmpty() /*&& !telefono.isEmpty()*/ && !pass.isEmpty()) {
             btn_cita_crear.setEnabled(true);
         } else {
             btn_cita_crear.setEnabled(false);
         }
 
-        if (!nombre.isEmpty() && !direccion.isEmpty() && !telefono.isEmpty() && pass.isBlank()) {
+        if (!nombre.isEmpty() && !direccion.isEmpty() &&/*!telefono.isEmpty()&& */ pass.isBlank()) {
             btn_cita_actualizar.setEnabled(true);
         } else {
             btn_cita_actualizar.setEnabled(false);
@@ -1172,7 +1170,7 @@ public class User_Admin extends javax.swing.JFrame {
 
             @Override
             public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
-                if (text.matches("\\d+")) {
+                if (text.matches("\\d+") || text.isEmpty()) {
                     super.replace(fb, offset, length, text, attrs);
                 }
             }
@@ -1188,7 +1186,7 @@ public class User_Admin extends javax.swing.JFrame {
         if (txt_admin_id.getText().equals("0") || txt_admin_id.getText().equals("")) {
             consulta = "SELECT * FROM `administrador`";
         } else {
-            consulta = "SELECT * FROM `administrador` WHERE id LIKE '%" + txt_admin_id.getText() + "%'";
+            consulta = "SELECT * FROM `administrador` WHERE id = '" + txt_admin_id.getText() + "'";
         }
 
         try {
@@ -1246,7 +1244,7 @@ public class User_Admin extends javax.swing.JFrame {
         if (txt_recep_id.getText().equals("0") || txt_recep_id.getText().equals("")) {
             consulta = "SELECT * FROM `recepcionista`";
         } else {
-            consulta = "SELECT * FROM `recepcionista` WHERE id LIKE '%" + txt_recep_id.getText() + "%'";
+            consulta = "SELECT * FROM `recepcionista` WHERE id = '" + txt_recep_id.getText() + "'";
         }
 
         try {
@@ -1298,13 +1296,13 @@ public class User_Admin extends javax.swing.JFrame {
         }
     }
 
-    public void buscarID_Lab(String usuario) {
+    public void buscarID_Lab() {
         String consulta;
 
         if (txt_lab_id.getText().equals("0") || txt_lab_id.getText().equals("")) {
             consulta = "SELECT * FROM `laboratorista`";
         } else {
-            consulta = "SELECT * FROM `laboratorista` WHERE id LIKE '%" + txt_lab_id.getText() + "%'";
+            consulta = "SELECT * FROM `laboratorista` WHERE id = '" + txt_lab_id.getText() + "'";
         }
 
         try {
@@ -1330,21 +1328,21 @@ public class User_Admin extends javax.swing.JFrame {
                 modeloA.addRow(fila);
             }
 
-            tbl_admin.setModel(modeloA);
+            tbl_lab.setModel(modeloA);
 
-            sorterAdmin = new TableRowSorter<>(modeloA);
-            tbl_admin.setRowSorter(sorterAdmin);
+            sorterLab = new TableRowSorter<>(modeloA);
+            tbl_lab.setRowSorter(sorterLab);
 
-            TableColumn idColumna = tbl_admin.getColumnModel().getColumn(0);
+            TableColumn idColumna = tbl_lab.getColumnModel().getColumn(0);
             idColumna.setPreferredWidth(20);
             DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
             centerRenderer.setHorizontalAlignment(JLabel.CENTER);
             idColumna.setCellRenderer(centerRenderer);
 
-            TableColumn direccionColumna = tbl_admin.getColumnModel().getColumn(2);
+            TableColumn direccionColumna = tbl_lab.getColumnModel().getColumn(2);
             direccionColumna.setPreferredWidth(200); // Ajustar el ancho de la columna "Dirección" a 200 píxeles
 
-            idColumna = tbl_admin.getColumnModel().getColumn(3);
+            idColumna = tbl_lab.getColumnModel().getColumn(3);
             idColumna.setPreferredWidth(30);
             centerRenderer.setHorizontalAlignment(JLabel.CENTER);
             idColumna.setCellRenderer(centerRenderer);
@@ -1358,13 +1356,13 @@ public class User_Admin extends javax.swing.JFrame {
         }
     }
 
-    public void buscarID_Citas(String usuario) {
+    public void buscarID_Citas() {
         String consulta;
 
         if (txt_cita_id.getText().equals("0") || txt_cita_id.getText().equals("")) {
             consulta = "SELECT * FROM `citas`";
         } else {
-            consulta = "SELECT * FROM `citas` WHERE id LIKE '%" + txt_cita_id.getText() + "%'";
+            consulta = "SELECT * FROM `citas` WHERE id = '" + txt_cita_id.getText() + "'";
         }
 
         try {
@@ -1418,8 +1416,153 @@ public class User_Admin extends javax.swing.JFrame {
         }
     }
 
-    public void buscarID_Estudio(String usuario) {
+    public void buscarID_Quimico() {
+        String consulta;
 
+        if (txt_quimico_id.getText().equals("0") || txt_quimico_id.getText().equals("")) {
+            consulta = "SELECT * FROM `quimico`";
+        } else {
+            consulta = "SELECT * FROM `quimico` WHERE id = '" + txt_quimico_id.getText() + "'";
+        }
+
+        try {
+            Conectar cc = new Conectar();
+            Connection conect = cc.conexion();
+            Statement st = (Statement) conect.createStatement();
+            ResultSet resultado = st.executeQuery(consulta);
+
+            DefaultTableModel modeloA = new DefaultTableModel();
+            modeloA.addColumn("ID");
+            modeloA.addColumn("Nombre");
+            modeloA.addColumn("Dirección");
+            modeloA.addColumn("Teléfono");
+            modeloA.addColumn("Puesto");
+            modeloA.addColumn("Contraseña");
+
+            while (resultado.next()) {
+                int id = resultado.getInt("id");
+                String nombre = resultado.getString("nombre");
+                String direccion = resultado.getString("direccion");
+                String telefono = resultado.getString("telefono");
+                String puesto = resultado.getString("puesto");
+                String pass = resultado.getString("password");
+                Object[] fila = {id, nombre, direccion, telefono, puesto, pass};
+                modeloA.addRow(fila);
+            }
+
+            tbl_quimico.setModel(modeloA);
+
+            sorterQuimico = new TableRowSorter<>(modeloA);
+            tbl_quimico.setRowSorter(sorterQuimico);
+
+            TableColumn idColumna = tbl_quimico.getColumnModel().getColumn(0);
+            idColumna.setPreferredWidth(20);
+            DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+            centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+            idColumna.setCellRenderer(centerRenderer);
+
+            TableColumn direccionColumna = tbl_quimico.getColumnModel().getColumn(2);
+            direccionColumna.setPreferredWidth(200); // Ajustar el ancho de la columna "Dirección" a 200 píxeles
+
+            idColumna = tbl_quimico.getColumnModel().getColumn(3);
+            idColumna.setPreferredWidth(30);
+            centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+            idColumna.setCellRenderer(centerRenderer);
+            // Cerrar los recursos
+            resultado.close();
+            st.close();
+            conect.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void buscarID_Cita() {
+        String consulta;
+
+        if (txt_cita_id.getText().equals("0") || txt_cita_id.getText().equals("")) {
+            consulta = "SELECT * FROM `citas`";
+        } else {
+            consulta = "SELECT * FROM `citas` WHERE id = '" + txt_cita_id.getText() + "'";
+        }
+
+        try {
+            Conectar cc = new Conectar();
+            Connection conect = cc.conexion();
+            Statement st = (Statement) conect.createStatement();
+            ResultSet resultado = st.executeQuery(consulta);
+
+            DefaultTableModel modeloA = new DefaultTableModel();
+            modeloA.addColumn("ID");
+            modeloA.addColumn("Clave");
+            modeloA.addColumn("Nombre");
+            modeloA.addColumn("Fecha");
+            modeloA.addColumn("Hora");
+            modeloA.addColumn("Telefono");
+            modeloA.addColumn("Resultados");
+            modeloA.addColumn("Estudios");
+            modeloA.addColumn("Estatus");
+
+            while (resultado.next()) {
+                int id = resultado.getInt("id");
+                String nombre = resultado.getString("nombre");
+                String fecha = resultado.getString("fecha");
+                String hora = resultado.getString("hora");
+                String telefono = resultado.getString("telefono");
+                String clave = resultado.getString("clave");
+                String resultados = resultado.getString("resultados");
+                String estudio_id = resultado.getString("estudio_id");
+                String estatus = resultado.getString("estatus");
+
+                String estudio = "";
+                Statement stEst = (Statement) conect.createStatement();
+                ResultSet resultadoEstudio = stEst.executeQuery("SELECT estudio FROM `estudio` WHERE id = " + estudio_id);
+
+                if (resultadoEstudio.next()) {
+                    estudio = resultadoEstudio.getString("estudio");
+                } else {
+                    estudio = "S/E";
+                }
+                Object[] fila = {id, clave, nombre, fecha, hora, telefono, resultados, estudio, estatus};
+                modeloA.addRow(fila);
+            }
+
+            tbl_citas.setModel(modeloA);
+
+            sorterCitas = new TableRowSorter<>(modeloA);
+            tbl_citas.setRowSorter(sorterCitas);
+
+            TableColumn idColumna = tbl_citas.getColumnModel().getColumn(0);
+            idColumna.setPreferredWidth(20);
+            DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+            centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+            idColumna.setCellRenderer(centerRenderer);
+
+            idColumna = tbl_citas.getColumnModel().getColumn(1);
+            idColumna.setPreferredWidth(55);
+            idColumna.setCellRenderer(centerRenderer);
+
+            idColumna = tbl_citas.getColumnModel().getColumn(2);
+            idColumna.setPreferredWidth(100);
+
+            idColumna = tbl_citas.getColumnModel().getColumn(3);
+            idColumna.setPreferredWidth(50);
+            idColumna.setCellRenderer(centerRenderer);
+
+            idColumna = tbl_citas.getColumnModel().getColumn(4);
+            idColumna.setPreferredWidth(50);
+            idColumna.setCellRenderer(centerRenderer);
+
+            idColumna = tbl_citas.getColumnModel().getColumn(3);
+            idColumna.setPreferredWidth(60);
+            idColumna.setCellRenderer(centerRenderer);
+            // Cerrar los recursos
+            resultado.close();
+            st.close();
+            conect.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     ////////////////////////
@@ -1552,7 +1695,7 @@ public class User_Admin extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(null, "Por favor, llene todos los campos.", "Campos Vacíos", JOptionPane.WARNING_MESSAGE);
             return;
         }
-         if (txt_recep_pass.getText().length() > 8) {
+        if (txt_recep_pass.getText().length() > 8) {
             JOptionPane.showMessageDialog(null, "La longitud de la contraseña no debe ser mayor a 8 caracteres.", "Error de longitid", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -1780,6 +1923,153 @@ public class User_Admin extends javax.swing.JFrame {
     }
 
     /////////////////////
+    //CRUD QUIMICO
+    public void insertQuim() {
+        // Obtenemos los valores de los campos de texto
+        String nombre = txt_quimico_nombre.getText().trim();
+        String direccion = txt_quimico_direccion.getText().trim();
+        String contrasena = txt_quimico_pass.getText().trim();
+        String telefono = txt_quimico_telefono.getText().trim();
+        String puesto = txt_quimico_puesto.getText().trim();
+
+        // Verificamos que todos los campos estén llenados
+        if (nombre.isEmpty() || direccion.isEmpty() || contrasena.isEmpty() || telefono.isEmpty() || puesto.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Por favor, llene todos los campos.", "Campos Vacíos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (txt_quimico_pass.getText().length() > 8) {
+            JOptionPane.showMessageDialog(null, "La longitud de la contraseña no debe ser mayor a 8 caracteres.", "Error de longitid", JOptionPane.WARNING_MESSAGE);
+            txt_quimico_pass.requestFocus();
+            return;
+        }
+
+        // Otras validaciones específicas pueden ser agregadas aquí según tus necesidades.
+        // Por ejemplo, puedes verificar que el teléfono sea numérico, que la contraseña cumpla con ciertos criterios de seguridad, etc.
+        try {
+            String insert = "INSERT INTO `quimico` (`nombre`, `direccion`, `telefono`, `password`, `puesto`) "
+                    + "VALUES (?, ?, ?, ?, ?)";
+
+            Conectar cc = new Conectar();
+            Connection conect = cc.conexion();
+            PreparedStatement statement = (PreparedStatement) conect.prepareStatement(insert);
+
+            // Configuramos los parámetros para el PreparedStatement
+            statement.setString(1, nombre);
+            statement.setString(2, direccion);
+            statement.setString(3, telefono);
+            statement.setString(4, contrasena);
+            statement.setString(5, puesto);
+
+            int rowsInserted = statement.executeUpdate();
+            if (rowsInserted > 0) {
+                JOptionPane.showInternalMessageDialog(null, "¡Se ha agregado un Quimico con éxito!", "Inserción Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                llenarTablaAdmin();
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, "Error al insertar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public void updateQuim() {
+        // Obtenemos los valores de los campos de texto
+        String id = txt_quimico_id.getText().trim();
+        String nombre = txt_quimico_nombre.getText().trim();
+        String direccion = txt_quimico_direccion.getText().trim();
+        String telefono = txt_quimico_telefono.getText().trim();
+        String puesto = txt_quimico_puesto.getText().trim();
+
+        // Verificamos que todos los campos estén llenos
+        if (nombre.isEmpty() || direccion.isEmpty() || telefono.isEmpty() || puesto.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Por favor, llene todos los campos.", "Campos Vacíos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Otras validaciones específicas pueden ser agregadas aquí según tus necesidades.
+        // Por ejemplo, puedes verificar que el teléfono sea numérico, que la contraseña cumpla con ciertos criterios de seguridad, etc.
+        try {
+            String update = "UPDATE `quimico` SET `nombre`=?, `direccion`=?, `telefono`=?, `puesto`=? WHERE `id`=?";
+
+            Conectar cc = new Conectar();
+            Connection conect = cc.conexion();
+            PreparedStatement statement = (PreparedStatement) conect.prepareStatement(update);
+
+            // Configuramos los parámetros para el PreparedStatement
+            statement.setString(1, nombre);
+            statement.setString(2, direccion);
+            statement.setString(3, telefono);
+            statement.setString(4, puesto);
+            statement.setString(5, id); // Aquí se establece el id del registro que se quiere actualizar
+
+            int rowsUpdated = statement.executeUpdate();
+            if (rowsUpdated > 0) {
+                JOptionPane.showMessageDialog(null, "¡Se ha actualizado el Quimico"
+                        + " con éxito!", "Actualización Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                llenarTablaAdmin(); // Opcional: Si deseas refrescar la tabla después de la actualización
+            } else {
+                JOptionPane.showMessageDialog(null, "No se encontró el registro con ID: " + id, "Error de Actualización", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, "Error al actualizar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public void deleteQuim() {
+        try {
+            String id = txt_lab_id.getText();
+            System.out.println("ID: " + id);
+
+            if (id.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "Por favor, llene todos el campo de ID.", "Campos Vacíos", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            String delete = "DELETE FROM `quimico` WHERE `id`=?";
+
+            Conectar cc = new Conectar();
+            Connection conect = cc.conexion();
+            PreparedStatement statement = (PreparedStatement) conect.prepareStatement(delete);
+
+            // Configuramos el parámetro para el PreparedStatement
+            statement.setString(1, id); // Aquí se establece el id del registro que se quiere eliminar
+
+            int rowsDeleted = statement.executeUpdate();
+            if (rowsDeleted > 0) {
+                JOptionPane.showMessageDialog(null, "¡Se ha eliminado el Quimico con éxito!", "Eliminación Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                llenarTablaAdmin(); // Opcional: Si deseas refrescar la tabla después de la eliminación
+            } else {
+                JOptionPane.showMessageDialog(null, "No se encontró el registro con ID: " + id, "Error de Eliminación", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, "Error al eliminar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /////////////////////
+    public void llenarCmbEstudio() {
+        try {
+            String sql = "SELECT estudio FROM estudio";
+
+            Conectar cc = new Conectar();
+            Connection conect = cc.conexion();
+            Statement st = (Statement) conect.createStatement();
+            ResultSet resultado = st.executeQuery(sql);
+
+            ArrayList<String> data = new ArrayList<>();
+            while (resultado.next()) {
+                data.add(resultado.getString("estudio"));
+            }
+            DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>(data.toArray(new String[0]));
+            cmb_estudios.setModel(model);
+
+            resultado.close();
+            st.close();
+            conect.close();
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, "Error al insertar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -1889,7 +2179,6 @@ public class User_Admin extends javax.swing.JFrame {
         jLabel27 = new javax.swing.JLabel();
         txt_cita_nombre = new javax.swing.JTextField();
         txt_cita_direccion = new javax.swing.JTextField();
-        txt_cita_telefono = new javax.swing.JTextField();
         btn_cita_crear = new javax.swing.JButton();
         btn_cita_actualizar = new javax.swing.JButton();
         btn_cita_borrar = new javax.swing.JButton();
@@ -1899,6 +2188,9 @@ public class User_Admin extends javax.swing.JFrame {
         txt_cita_pass = new javax.swing.JTextField();
         jLabel29 = new javax.swing.JLabel();
         btn_limpiar_campos_cita = new javax.swing.JButton();
+        cmb_estudios = new javax.swing.JComboBox<>();
+        jLabel50 = new javax.swing.JLabel();
+        DateChooser_cita = new com.toedter.calendar.JDateChooser();
         jLabel30 = new javax.swing.JLabel();
         pnl_recep3 = new javax.swing.JPanel();
         jScrollPane8 = new javax.swing.JScrollPane();
@@ -2904,13 +3196,13 @@ public class User_Admin extends javax.swing.JFrame {
         jPanel8.setBackground(new java.awt.Color(255, 255, 255));
 
         jLabel25.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        jLabel25.setText("Direccion");
+        jLabel25.setText("Telefono");
 
         jLabel26.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel26.setText("Nombre");
 
         jLabel27.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        jLabel27.setText("Telefono");
+        jLabel27.setText("Estudio");
 
         txt_cita_nombre.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
@@ -2921,12 +3213,6 @@ public class User_Admin extends javax.swing.JFrame {
         txt_cita_direccion.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
                 txt_cita_direccionKeyTyped(evt);
-            }
-        });
-
-        txt_cita_telefono.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                txt_cita_telefonoKeyTyped(evt);
             }
         });
 
@@ -2986,7 +3272,7 @@ public class User_Admin extends javax.swing.JFrame {
         });
 
         jLabel29.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        jLabel29.setText("Contraseña");
+        jLabel29.setText("Estudio");
 
         btn_limpiar_campos_cita.setBackground(new java.awt.Color(255, 255, 255));
         btn_limpiar_campos_cita.setIcon(new javax.swing.ImageIcon(getClass().getResource("/img/limpiar-campos-48.png"))); // NOI18N
@@ -2995,6 +3281,21 @@ public class User_Admin extends javax.swing.JFrame {
         btn_limpiar_campos_cita.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btn_limpiar_campos_citaActionPerformed(evt);
+            }
+        });
+
+        cmb_estudios.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cmb_estudiosActionPerformed(evt);
+            }
+        });
+
+        jLabel50.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        jLabel50.setText("Fecha");
+
+        DateChooser_cita.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+            public void propertyChange(java.beans.PropertyChangeEvent evt) {
+                DateChooser_citaPropertyChange(evt);
             }
         });
 
@@ -3007,20 +3308,7 @@ public class User_Admin extends javax.swing.JFrame {
                 .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(txt_cita_nombre)
                     .addComponent(txt_cita_direccion)
-                    .addComponent(txt_cita_telefono)
                     .addComponent(txt_cita_pass)
-                    .addGroup(jPanel8Layout.createSequentialGroup()
-                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel26, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel25, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel27, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel28)
-                            .addGroup(jPanel8Layout.createSequentialGroup()
-                                .addComponent(txt_cita_id, javax.swing.GroupLayout.PREFERRED_SIZE, 295, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(btn_cita_buscar_id, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(jLabel29, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(0, 0, Short.MAX_VALUE))
                     .addGroup(jPanel8Layout.createSequentialGroup()
                         .addComponent(btn_cita_crear, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
@@ -3028,7 +3316,26 @@ public class User_Admin extends javax.swing.JFrame {
                         .addGap(18, 18, 18)
                         .addComponent(btn_cita_borrar, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(btn_limpiar_campos_cita, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                        .addComponent(btn_limpiar_campos_cita, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(jLabel26, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel25, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel28)
+                            .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addComponent(txt_cita_id, javax.swing.GroupLayout.PREFERRED_SIZE, 295, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(btn_cita_buscar_id, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jLabel29, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel50, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(DateChooser_cita, javax.swing.GroupLayout.PREFERRED_SIZE, 157, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel27, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(cmb_estudios, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+                        .addGap(0, 0, Short.MAX_VALUE))))
         );
         jPanel8Layout.setVerticalGroup(
             jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -3041,9 +3348,13 @@ public class User_Admin extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(txt_cita_direccion, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel27)
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel27)
+                    .addComponent(jLabel50))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(txt_cita_telefono, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(cmb_estudios, javax.swing.GroupLayout.DEFAULT_SIZE, 40, Short.MAX_VALUE)
+                    .addComponent(DateChooser_cita, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jLabel29)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -3922,6 +4233,7 @@ public class User_Admin extends javax.swing.JFrame {
         reiniciarEstilos();
         btn_citas.setBackground(new Color(204, 229, 255));
         llenarTablaCitas();
+        llenarCmbEstudio();
     }//GEN-LAST:event_btn_citasActionPerformed
 
     private void btn_estudiosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_estudiosActionPerformed
@@ -4099,11 +4411,15 @@ public class User_Admin extends javax.swing.JFrame {
 
     private void txt_lab_idKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_lab_idKeyReleased
         // TODO add your handling code here:
+        String id_buscada = txt_lab_id.getText().replace(" ", "");
+        if (id_buscada.isEmpty()) {
+            llenarTablaLab();
+        }
     }//GEN-LAST:event_txt_lab_idKeyReleased
 
     private void btn_lab_buscar_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_lab_buscar_idActionPerformed
         // TODO add your handling code here:
-        buscarID_Lab(nombre);
+        buscarID_Lab();
     }//GEN-LAST:event_btn_lab_buscar_idActionPerformed
 
     private void txt_lab_passKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_lab_passKeyTyped
@@ -4128,14 +4444,6 @@ public class User_Admin extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_txt_cita_nombreKeyTyped
 
-    private void txt_cita_direccionKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_cita_direccionKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_cita_direccionKeyTyped
-
-    private void txt_cita_telefonoKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_cita_telefonoKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_cita_telefonoKeyTyped
-
     private void btn_cita_crearActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cita_crearActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_btn_cita_crearActionPerformed
@@ -4150,10 +4458,15 @@ public class User_Admin extends javax.swing.JFrame {
 
     private void txt_cita_idKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_cita_idKeyReleased
         // TODO add your handling code here:
+        String id_buscada = txt_cita_id.getText().replace(" ", "");
+        if (id_buscada.isEmpty()) {
+            llenarTablaCitas();
+        }
     }//GEN-LAST:event_txt_cita_idKeyReleased
 
     private void btn_cita_buscar_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cita_buscar_idActionPerformed
         // TODO add your handling code here:
+        buscarID_Cita();
     }//GEN-LAST:event_btn_cita_buscar_idActionPerformed
 
     private void txt_cita_passKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_cita_passKeyTyped
@@ -4194,6 +4507,10 @@ public class User_Admin extends javax.swing.JFrame {
 
     private void txt_estudio_idKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_estudio_idKeyReleased
         // TODO add your handling code here:
+        String id_buscada = txt_estudio_id.getText().replace(" ", "");
+        if (id_buscada.isEmpty()) {
+            llenarTablaEstudios();
+        }
     }//GEN-LAST:event_txt_estudio_idKeyReleased
 
     private void btn_estudio_buscar_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_estudio_buscar_idActionPerformed
@@ -4238,6 +4555,10 @@ public class User_Admin extends javax.swing.JFrame {
 
     private void txt_area_idKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_area_idKeyReleased
         // TODO add your handling code here:
+        String id_buscada = txt_area_id.getText().replace(" ", "");
+        if (id_buscada.isEmpty()) {
+            llenarTablaArea();
+        }
     }//GEN-LAST:event_txt_area_idKeyReleased
 
     private void btn_area_buscar_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_area_buscar_idActionPerformed
@@ -4270,6 +4591,8 @@ public class User_Admin extends javax.swing.JFrame {
 
     private void btn_quimico_crearActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_quimico_crearActionPerformed
         // TODO add your handling code here:
+
+        llenarTablaQuimico();
     }//GEN-LAST:event_btn_quimico_crearActionPerformed
 
     private void btn_quimico_actualizarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_quimico_actualizarActionPerformed
@@ -4282,10 +4605,15 @@ public class User_Admin extends javax.swing.JFrame {
 
     private void txt_quimico_idKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_quimico_idKeyReleased
         // TODO add your handling code here:
+        String id_buscada = txt_quimico_id.getText().replace(" ", "");
+        if (id_buscada.isEmpty()) {
+            llenarTablaQuimico();
+        }
     }//GEN-LAST:event_txt_quimico_idKeyReleased
 
     private void btn_quimico_buscar_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_quimico_buscar_idActionPerformed
         // TODO add your handling code here:
+        buscarID_Quimico();
     }//GEN-LAST:event_btn_quimico_buscar_idActionPerformed
 
     private void txt_quimico_passKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_quimico_passKeyTyped
@@ -4321,6 +4649,41 @@ public class User_Admin extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_txt_quimico_puestoKeyReleased
 
+    private void txt_cita_direccionKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_cita_direccionKeyTyped
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_cita_direccionKeyTyped
+
+    private void cmb_estudiosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmb_estudiosActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_cmb_estudiosActionPerformed
+    private boolean warningShown = false;
+    private void DateChooser_citaPropertyChange(java.beans.PropertyChangeEvent evt) {//GEN-FIRST:event_DateChooser_citaPropertyChange
+        // Verificar si la propiedad "date" cambió
+        // Verificar si la propiedad "date" cambió
+        if ("date".equals(evt.getPropertyName())) {
+            Date selectedDate = (Date) evt.getNewValue();
+            Date currentDate = new Date();  // Obtener la fecha actual
+
+            if (selectedDate != null) {
+                // Comparar la fecha seleccionada con la fecha actual
+                if (selectedDate.before(currentDate)) {
+                    // La fecha seleccionada es anterior a la fecha actual
+                    if (!warningShown) {
+                        // Mostrar mensaje de advertencia solo si no se ha mostrado antes
+                        JOptionPane.showMessageDialog(this, "La fecha seleccionada ya ha pasado.", "Fecha Pasada", JOptionPane.WARNING_MESSAGE);
+                        warningShown = true; // Establecer la bandera para indicar que se ha mostrado el mensaje
+                    } else {
+                        warningShown = false; // Restablecer la bandera si la fecha seleccionada es anterior pero no se muestra el mensaje
+                    }
+                    // Establecer la fecha actual en el JDateChooser
+                    ((JDateChooser) evt.getSource()).setDate(currentDate);
+                } else {
+                    warningShown = false; // Restablecer la bandera si la fecha seleccionada es posterior a la fecha actual
+                }
+            }
+        }
+    }//GEN-LAST:event_DateChooser_citaPropertyChange
+
     /**
      * @param args the command line arguments
      */
@@ -4335,6 +4698,7 @@ public class User_Admin extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTabbedPane Contenedor;
+    private com.toedter.calendar.JDateChooser DateChooser_cita;
     private javax.swing.JButton btn_admin;
     private javax.swing.JButton btn_admin_actualizar;
     private javax.swing.JButton btn_admin_borrar;
@@ -4378,6 +4742,7 @@ public class User_Admin extends javax.swing.JFrame {
     private javax.swing.JButton btn_recep_borrar;
     private javax.swing.JButton btn_recep_buscar_id;
     private javax.swing.JButton btn_recep_crear;
+    private javax.swing.JComboBox<String> cmb_estudios;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
@@ -4418,6 +4783,7 @@ public class User_Admin extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel48;
     private javax.swing.JLabel jLabel49;
     private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel50;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
@@ -4490,7 +4856,6 @@ public class User_Admin extends javax.swing.JFrame {
     private javax.swing.JTextField txt_cita_id;
     private javax.swing.JTextField txt_cita_nombre;
     private javax.swing.JTextField txt_cita_pass;
-    private javax.swing.JTextField txt_cita_telefono;
     private javax.swing.JTextField txt_estudio_direccion;
     private javax.swing.JTextField txt_estudio_id;
     private javax.swing.JTextField txt_estudio_nombre;
